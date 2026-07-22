@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import date
 
 import httpx
@@ -26,6 +25,8 @@ class AgentCoreParser(OpenAICompatibleParser):
                     json={"messages": [{"role": "user", "content": prompt}], "model": self.model or None, "temperature": 0},
                 )
                 response.raise_for_status()
-            return ParsedPlan.model_validate(self._normalize_payload(json.loads(response.json()["content"]), target_date))
+            return ParsedPlan.model_validate(
+                self._normalize_payload(self._decode_json_object(response.json()["content"]), target_date)
+            )
         except Exception as exc:  # noqa: BLE001
             raise ParserError(f"Platform LLM parse failed: {exc}") from exc

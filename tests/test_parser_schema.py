@@ -46,3 +46,13 @@ def test_openai_compatible_parser_normalizes_empty_llm_fields():
     validated = ParsedPlan.model_validate(payload)
     assert validated.tasks[0].time_preference == "any"
     assert validated.tasks[0].earliest_start is None
+
+
+def test_openai_compatible_parser_decodes_markdown_wrapped_json():
+    parser = OpenAICompatibleParser("key", "https://example.test", "model")
+
+    payload = parser._decode_json_object(
+        "Here is the plan:\n```json\n{\"date\": \"2026-07-22\", \"tasks\": []}\n```"
+    )
+
+    assert payload == {"date": "2026-07-22", "tasks": []}

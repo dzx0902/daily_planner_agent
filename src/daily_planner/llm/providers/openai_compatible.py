@@ -37,7 +37,7 @@ class OpenAICompatibleParser(LLMParser):
                     )
                     response.raise_for_status()
                 content = response.json()["choices"][0]["message"]["content"]
-                payload = self._normalize_payload(json.loads(content), target_date)
+                payload = self._normalize_payload(self._decode_json_object(content), target_date)
                 return ParsedPlan.model_validate(payload)
             except Exception as exc:  # noqa: BLE001
                 last_error = exc
@@ -63,6 +63,26 @@ class OpenAICompatibleParser(LLMParser):
         payload["tasks"] = [self._normalize_task(task) for task in payload.get("tasks", [])]
         payload.setdefault("blocked_times", [])
         payload.setdefault("preferences", {})
+        return payload
+
+    @staticmethod
+    def _decode_json_object(content: str) -> dict[str, Any]:
+        """Accept JSON returned bare or wrapped in a Markdown code fence."""
+        text = content.strip()
+        if text.startswith("```"):
+            first_newline = text.find("\n")
+            if first_newline != -1:
+                text = text[first_newline + 1 :]
+            if text.rstrip().endswith("```"):
+                text = text.rstrip()[:-3]
+
+        decoder = json.JSONDecoder()
+        start = text.find("{")
+        if start == -1:
+            raise ValueError("LLM response does not contain a JSON object")
+        payload, _ = decoder.raw_decode(text[start:])
+        if not isinstance(payload, dict):
+            raise ValueError("LLM response JSON must be an object")
         return payload
 
     def _normalize_task(self, task: dict[str, Any]) -> dict[str, Any]:
