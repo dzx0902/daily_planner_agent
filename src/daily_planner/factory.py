@@ -8,13 +8,17 @@ from daily_planner.core.sync_service import SyncService
 from daily_planner.llm.base import LLMParser
 from daily_planner.llm.parser import RuleBasedParser
 from daily_planner.llm.providers.deepseek import DeepSeekParser
+from daily_planner.llm.providers.agent_core import AgentCoreParser
 from daily_planner.repositories.base import TaskRepository
 from daily_planner.repositories.hybrid import HybridTaskRepository
 from daily_planner.repositories.notion import NotionTaskRepository
 from daily_planner.repositories.sqlite import SQLiteTaskRepository
+from daily_planner.repositories.postgres import PostgresTaskRepository
 
 
 def build_parser(settings: Settings) -> LLMParser:
+    if settings.agent_core_url:
+        return AgentCoreParser(settings.agent_core_url, settings.deepseek_model)
     if settings.llm_provider == "deepseek":
         return DeepSeekParser(settings.deepseek_api_key, settings.deepseek_base_url, settings.deepseek_model)
     return RuleBasedParser()
@@ -24,6 +28,13 @@ def build_repository(settings: Settings) -> TaskRepository:
     sqlite = SQLiteTaskRepository(settings.sqlite_file)
     if settings.task_backend == "sqlite":
         return sqlite
+    if settings.task_backend in {"postgres", "postgres_hybrid"}:
+        if not settings.planner_database_url:
+            raise ValueError("PLANNER_DATABASE_URL is required for PostgreSQL backends.")
+        primary = PostgresTaskRepository(settings.planner_database_url)
+        if settings.task_backend == "postgres":
+            return primary
+        return HybridTaskRepository(primary, NotionTaskRepository(settings))
     notion = NotionTaskRepository(settings)
     if settings.task_backend == "notion":
         return notion
@@ -42,4 +53,4 @@ def build_review_service(settings: Settings | None = None) -> ReviewService:
 
 def build_sync_service(settings: Settings | None = None) -> SyncService:
     settings = settings or get_settings()
-    return SyncService(SQLiteTaskRepository(settings.sqlite_file), NotionTaskRepository(settings))
+    return SyncService(build_repository(settings), NotionTaskRepository(settings))

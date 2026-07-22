@@ -17,13 +17,15 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
 
-    task_backend: Literal["sqlite", "notion", "hybrid"] = "sqlite"
+    task_backend: Literal["sqlite", "notion", "hybrid", "postgres", "postgres_hybrid"] = "sqlite"
     sqlite_path: str = "data/daily_planner.db"
+    planner_database_url: str = ""
 
     llm_provider: str = "rule"
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
+    agent_core_url: str = ""
 
     notion_api_key: str = ""
     notion_data_source_id: str = "3978473f-2546-80cd-8b11-000b260bf205"
