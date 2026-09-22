@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     llm_provider: str = "rule"
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
-    deepseek_model: str = "deepseek-chat"
+    deepseek_model: str = "deepseek-flash"
     agent_core_url: str = ""
 
     notion_api_key: str = ""
